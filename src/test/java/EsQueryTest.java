@@ -7,6 +7,7 @@ import org.apache.http.util.EntityUtils;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.*;
+import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
@@ -24,6 +25,8 @@ import java.util.Arrays;
 import java.util.Map;
 
 /**
+ * 检索
+ * 注意：es的检索目标都是分过词的词语（text类型）
  * @author lidefu
  * @date 2019/1/16 9:07
  */
@@ -32,19 +35,119 @@ import java.util.Map;
 public class EsQueryTest {
 
 
+
     public static void main(String[] args) throws IOException {
+
     }
+
+
 
     @Test
     public void matchQuery() throws IOException {
         RestHighLevelClient client = EsClient.client();
         try {
-            SearchRequest request = new SearchRequest("people", "people-2");
+            SearchRequest request = new SearchRequest("people");
             SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
             sourceBuilder.query(QueryBuilders.matchQuery("detail3", "能言善辩"));
             request.source(sourceBuilder);
             SearchResponse response = client.search(request, RequestOptions.DEFAULT);
             System.out.println(response.toString());
+        }finally {
+            client.close();
+        }
+    }
+
+    /**
+     * 正则匹配
+     * @throws IOException
+     */
+    @Test
+    public void regexpQuery() throws IOException {
+        RestHighLevelClient client = EsClient.client();
+        try {
+            SearchRequest request = new SearchRequest("people");
+            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+            sourceBuilder.query(QueryBuilders.regexpQuery("desc", "三国(.*?)"));
+            request.source(sourceBuilder);
+            SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+            System.out.println(response);
+        }finally {
+            client.close();
+        }
+    }
+
+    /**
+     * 通配符查询
+     * @throws IOException
+     */
+    @Test
+    public void wildcardQuery() throws IOException {
+        RestHighLevelClient client = EsClient.client();
+        try {
+            SearchRequest request = new SearchRequest("people");
+            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+            sourceBuilder.query(QueryBuilders.wildcardQuery("desc", "三?"));
+            request.source(sourceBuilder);
+            SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+            System.out.println(response);
+        }finally {
+            client.close();
+        }
+    }
+
+    /**
+     * 匹配前缀
+     * @throws IOException
+     */
+    @Test
+    public void prefixQuery() throws IOException {
+        RestHighLevelClient client = EsClient.client();
+        try {
+            SearchRequest request = new SearchRequest("people");
+            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+            sourceBuilder.query(QueryBuilders.prefixQuery("desc", "三国"));
+            request.source(sourceBuilder);
+            SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+            System.out.println(response);
+        }finally {
+            client.close();
+        }
+    }
+
+    /**
+     * 精确匹配 desc文本中必须出现完整的词语'三国'
+     * @throws IOException
+     */
+    @Test
+    public void termQuery() throws IOException {
+        RestHighLevelClient client = EsClient.client();
+        try {
+            SearchRequest request = new SearchRequest("people");
+            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+            sourceBuilder.query(QueryBuilders.termQuery("desc", "三国"));
+            request.source(sourceBuilder);
+            SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+            System.out.println(response);
+        }finally {
+            client.close();
+        }
+    }
+
+    /**
+     * 基于term的模糊匹配
+     * Fuzziness.TWO 指编辑距离为2 个人理解从查询词到命中词需要2次编辑
+     * @throws IOException
+     */
+    @Test
+    public void fuzzyQuery() throws IOException {
+        RestHighLevelClient client = EsClient.client();
+        try {
+            SearchRequest request = new SearchRequest("people");
+            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+            sourceBuilder.query(QueryBuilders.fuzzyQuery("desc", "啊三国啊").fuzziness(Fuzziness.TWO));
+            request.source(sourceBuilder);
+            SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+            System.out.println(response);
         }finally {
             client.close();
         }
@@ -148,6 +251,23 @@ public class EsQueryTest {
                 Map<String, HighlightField> highlightFields = hit.getHighlightFields();
                 System.out.println(highlightFields);
             });
+        }finally {
+            client.close();
+        }
+    }
+
+    @Test
+    public void queryString() throws IOException {
+        RestHighLevelClient client = EsClient.client();
+        try {
+            SearchRequest request = new SearchRequest("people");
+            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+            QueryStringQueryBuilder queryBuilder = QueryBuilders.queryStringQuery("关 AND 解");
+            queryBuilder.field("desc");
+            sourceBuilder.query(queryBuilder);
+            request.source(sourceBuilder);
+            SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+            System.out.println(1);
         }finally {
             client.close();
         }
