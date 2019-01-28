@@ -1,0 +1,135 @@
+http://172.16.74.112:9200/ PUT
+_cluster/settings
+{
+  "persistent": {
+    "cluster": {
+      "remote": {
+        "cluster_one": {
+          "seeds": [
+            "172.16.74.112:9300"
+          ]
+        },
+        "cluster_two": {
+          "seeds": [
+            "172.16.36.148:9300"
+          ]
+        }
+      }
+    }
+  }
+}
+
+http://172.16.74.112:9200/cluster_one:people,cluster_two:people/ 
+{
+  "query": {
+    "match": {
+      "desc": "三国"
+    }
+  }
+}
+
+添加属性
+http://172.16.74.112:9200/people/people/
+_mappings put
+{
+  "properties": {
+    "lists": {
+      "type": "object"
+    }
+  }
+}
+
+新增doc
+http://172.16.36.148:9200/stu/_doc/ 
+POST
+{
+ "name": "小红",
+ "sex": "女",
+ "age": "22",
+ "score": "95",
+ "grade": "二班",
+ "desc": "家住北京市昌平区，性格外向，聪明伶俐"
+}
+
+
+修改doc
+http://172.16.74.112:9200/people/people/1xIPYGgBPDtjcCQKFBBG
+PUT
+{
+    "lists" : ["孙尚香", "孙小香"]
+}
+
+script 局部追加
+{
+   "script" : "ctx._source.tags+=new_tag",
+   "params" : {
+      "new_tag" : "tag4"
+   }
+}
+
+设置默认分词器（注意：设置前要先关闭索引）
+http://172.16.36.148:9200/stu/
+_settings PUT
+{
+"index.analysis.analyzer.default.type" : "ik_max_word"
+}
+
+查询
+http://172.16.36.148:9200/stu/
+_search POST
+{
+    "query" : {
+        "term" : { "name" : "小红" }
+    }
+}
+
+统计 aggs
+1)去重统计 ps: "size" : 0; 该设置起到禁用_souce的作用
+年级grade去重统计数量
+http://172.16.36.148:9200/stu/ _search POST
+{
+    "size" : 0,
+    "aggs" : {
+        "distinct_grade" : {
+            "cardinality" : {
+              "field" : "grade"
+            }
+        }
+    }
+}
+2)分组统计
+性别sex的分别数量
+http://172.16.36.148:9200/stu/ _search POST
+{
+    "size" : 0,
+    "aggs" : {
+        "sex_nums" : {
+            "terms" : {
+                "field" : "sex"
+            }
+        }
+    }
+}
+3)范围统计 
+各年龄段学生数量统计
+http://172.16.36.148:9200/stu/ _search POST
+左开右闭区间
+{
+    "size": 0,
+    "aggs":{
+        "range_ranges":{
+            "range":{
+                "field":"age",
+                "ranges":[
+                    {"key":"1","to":19},
+                    {"key":"2","from":19,"to":20},
+                    {"key":"3","from":20,"to":"30"}]
+                }
+            }
+        }
+}
+
+
+
+
+
