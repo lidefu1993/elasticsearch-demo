@@ -129,6 +129,21 @@ http://172.16.36.148:9200/stu/ _search POST
         }
 }
 
+4)组合统计
+desc中包含顺义的最高分数和最低分数
+{
+    "size" : 0,
+    "query": {
+      "match" : {
+       "desc" : "顺义"
+      }
+    },
+    "aggs" : {
+        "max_score" : { "max" : { "field" : "score" } },
+		"min_score" : { "min" : { "field" : "score" } }
+    }
+}
+
 
 
 
